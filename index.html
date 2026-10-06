@@ -1,0 +1,364 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#5b4bdb">
+<title>Agora — Monitoramento emocional</title>
+
+<style>
+:root{
+--bg:#f7f7fb;--card:#fff;--ink:#24243a;--muted:#77778a;
+--primary:#5b4bdb;--soft:#eeecff;--line:#e7e6ef;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);
+font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+.app{max-width:680px;margin:auto;min-height:100vh;padding:18px 16px 90px}
+.top{display:flex;justify-content:space-between;align-items:center}
+.brand{font-size:24px;font-weight:800}
+.subtitle,.muted{color:var(--muted);font-size:14px}
+.screen{display:none}.screen.active{display:block}
+.card{background:white;border:1px solid var(--line);border-radius:24px;
+padding:20px;margin:14px 0;box-shadow:0 8px 30px #24243a12}
+h1{font-size:30px;line-height:1.1;margin:8px 0}
+h2{font-size:21px}
+p{line-height:1.5}
+button{font:inherit;cursor:pointer}
+.primary,.secondary{width:100%;padding:16px;border:0;border-radius:17px;
+font-weight:750;margin-top:12px}
+.primary{background:var(--primary);color:white}
+.secondary{background:var(--soft);color:var(--primary)}
+.choices{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:16px}
+.choice{padding:16px 8px;background:#fafaff;border:1.5px solid var(--line);
+border-radius:18px;text-align:center;color:var(--ink)}
+.choice.selected{border-color:var(--primary);background:var(--soft);color:var(--primary)}
+.emoji{font-size:29px;display:block;margin-bottom:6px}
+textarea{width:100%;min-height:120px;border:1px solid var(--line);
+border-radius:17px;padding:14px;resize:vertical}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+.chip{padding:10px 13px;border-radius:999px;border:1px solid var(--line);
+background:#f1f0f6}
+.chip.selected{background:var(--soft);color:var(--primary)}
+.nav{position:fixed;bottom:0;left:0;right:0;background:#fffffff2;
+border-top:1px solid var(--line);display:flex;justify-content:center;z-index:5}
+.nav button{background:transparent;border:0;padding:10px 16px;color:var(--muted)}
+.nav button.active{color:var(--primary);font-weight:700}
+.entry{padding:14px 0;border-bottom:1px solid var(--line)}
+.tag{display:inline-block;background:#f1f0f6;border-radius:999px;
+padding:5px 9px;font-size:12px;margin:3px}
+.alert{background:#fff2f4;border:1px solid #f1bcc7;
+border-radius:18px;padding:15px;margin-top:14px}
+.safe{background:#eef9f4;border:1px solid #bde4d2;
+border-radius:18px;padding:15px;margin-top:14px}
+.hide{display:none}
+.center{text-align:center}
+.breath{width:150px;height:150px;border-radius:50%;background:var(--soft);
+margin:25px auto;display:flex;align-items:center;justify-content:center;
+color:var(--primary);font-weight:800;animation:breathe 8s infinite ease-in-out}
+@keyframes breathe{0%,100%{transform:scale(.78)}50%{transform:scale(1.08)}}
+</style>
+</head>
+
+<body>
+<div class="app">
+
+<header class="top">
+<div>
+<div class="brand">Agora</div>
+<div class="subtitle">um check-in que se adapta a você</div>
+</div>
+</header>
+
+<section id="home" class="screen active">
+<div class="card">
+<div class="muted">Check-in</div>
+<h1>Como você está agora?</h1>
+<p class="muted">Você pode responder em poucos toques.</p>
+
+<div class="choices">
+<button class="choice" onclick="mood(1,this)">😣<br>Muito difícil</button>
+<button class="choice" onclick="mood(2,this)">😕<br>Difícil</button>
+<button class="choice" onclick="mood(3,this)">😐<br>Mais ou menos</button>
+<button class="choice" onclick="mood(4,this)">🙂<br>Bem</button>
+<button class="choice" onclick="mood(5,this)">😊<br>Muito bem</button>
+</div>
+
+<div id="moodNext" class="hide">
+<button class="primary" onclick="continueMood()">Continuar</button>
+</div>
+</div>
+
+<div class="card">
+<h2>Ou escreva do seu jeito</h2>
+<p class="muted">O Agora tenta organizar o que você escrever.</p>
+<textarea id="text" placeholder="Ex.: Hoje foi pesado. Briguei com alguém e estou me sentindo sozinho."></textarea>
+<button class="secondary" onclick="analyze()">Entender meu registro</button>
+</div>
+
+<div id="result"></div>
+</section>
+
+<section id="checkin" class="screen">
+<div class="card">
+<div class="muted" id="step"></div>
+<h1 id="title"></h1>
+<div id="body"></div>
+</div>
+</section>
+
+<section id="now" class="screen">
+<div class="card center">
+<div class="muted">Modo Agora</div>
+<h1>Vamos deixar tudo mais simples.</h1>
+<p>Escolha o que seria útil neste momento.</p>
+
+<div class="choices">
+<button class="choice" onclick="breath()">🌿<br>Me acalmar</button>
+<button class="choice" onclick="support()">🤝<br>Encontrar apoio</button>
+<button class="choice" onclick="plan()">🧭<br>Meu plano</button>
+<button class="choice" onclick="show('home')">📝<br>Registrar</button>
+</div>
+</div>
+<div id="nowContent"></div>
+</section>
+
+<section id="history" class="screen">
+<div class="card">
+<h1>Meu histórico</h1>
+<div id="stats"></div>
+</div>
+<div class="card">
+<h2>Registros</h2>
+<div id="entries"></div>
+</div>
+</section>
+
+<section id="about" class="screen">
+<div class="card">
+<h1>Sobre o Agora</h1>
+<p>O aplicativo foi pensado para reduzir a carga de registro emocional.</p>
+<p>Ele não diagnostica e não determina risco clínico. O objetivo é organizar informações e ajudar na reflexão.</p>
+<h2>Privacidade</h2>
+<p>Esta versão guarda os registros apenas neste aparelho.</p>
+</div>
+</section>
+
+<nav class="nav">
+<button onclick="show('home')">●<br>Check-in</button>
+<button onclick="show('now')">✦<br>Agora</button>
+<button onclick="show('history')">◷<br>Histórico</button>
+<button onclick="show('about')">i<br>Sobre</button>
+</nav>
+
+</div>
+
+<script>
+const KEY="agora_data";
+let currentMood=null;
+let state={};
+
+function getData(){
+return JSON.parse(localStorage.getItem(KEY)||"[]");
+}
+
+function save(item){
+const a=getData();
+a.unshift({...item,date:new Date().toISOString()});
+localStorage.setItem(KEY,JSON.stringify(a));
+}
+
+function show(id){
+document.querySelectorAll(".screen").forEach(x=>x.classList.remove("active"));
+document.getElementById(id).classList.add("active");
+
+if(id==="history") renderHistory();
+
+scrollTo(0,0);
+}
+
+function mood(n,el){
+currentMood=n;
+document.querySelectorAll(".choice").forEach(x=>x.classList.remove("selected"));
+el.classList.add("selected");
+document.getElementById("moodNext").classList.remove("hide");
+}
+
+function continueMood(){
+if(currentMood<=2){
+startCheckin();
+}else{
+save({type:"checkin",mood:currentMood});
+document.getElementById("result").innerHTML=
+'<div class="safe">Registrado. Você pode voltar ao histórico quando quiser.</div>';
+}
+}
+
+function startCheckin(){
+state={mood:currentMood};
+show("checkin");
+step1();
+}
+
+function step1(){
+document.getElementById("step").textContent="1 de 3";
+document.getElementById("title").textContent="O que está mais forte?";
+
+document.getElementById("body").innerHTML=`
+<div class="chips">
+<button class="chip" onclick="emotion('tristeza')">Tristeza</button>
+<button class="chip" onclick="emotion('ansiedade')">Ansiedade</button>
+<button class="chip" onclick="emotion('raiva')">Raiva</button>
+<button class="chip" onclick="emotion('medo')">Medo</button>
+<button class="chip" onclick="emotion('vazio')">Vazio</button>
+<button class="chip" onclick="emotion('solidão')">Solidão</button>
+<button class="chip" onclick="emotion('culpa')">Culpa</button>
+</div>`;
+}
+
+function emotion(x){
+state.emotion=x;
+step2();
+}
+
+function step2(){
+document.getElementById("step").textContent="2 de 3";
+document.getElementById("title").textContent="O que aconteceu?";
+
+document.getElementById("body").innerHTML=`
+<p class="muted">Uma frase já basta.</p>
+<textarea id="context" placeholder="Ex.: tive uma discussão, fiquei sozinho..."></textarea>
+<button class="primary" onclick="step3()">Continuar</button>`;
+}
+
+function step3(){
+state.context=document.getElementById("context").value;
+
+document.getElementById("step").textContent="3 de 3";
+document.getElementById("title").textContent="O que você precisa agora?";
+
+document.getElementById("body").innerHTML=`
+<div class="choices">
+<button class="choice" onclick="finish('só registrar')">📝<br>Só registrar</button>
+<button class="choice" onclick="finish('me acalmar')">🌿<br>Me acalmar</button>
+<button class="choice" onclick="finish('conversar')">🤝<br>Conversar</button>
+<button class="choice" onclick="finish('não sei')">❔<br>Não sei</button>
+</div>`;
+}
+
+function finish(need){
+state.need=need;
+save({type:"checkin",...state});
+show("now");
+
+if(state.mood===1){
+document.getElementById("nowContent").innerHTML=
+`<div class="alert">
+<b>Vamos manter isso simples.</b>
+<p>Se você estiver em perigo imediato ou achar que pode se machucar, procure ajuda presencial ou um serviço de emergência da sua região.</p>
+</div>`;
+}else{
+document.getElementById("nowContent").innerHTML=
+`<div class="safe">Seu registro foi salvo.</div>`;
+}
+}
+
+function analyze(){
+const text=document.getElementById("text").value.trim();
+if(!text)return;
+
+const s=text.toLowerCase();
+const flags=[];
+
+if(/não aguento|sem saída|não vejo futuro|não quero.*viver|quero morrer|me matar|suicid|tirar minha vida/.test(s))
+flags.push("sofrimento / morte");
+
+if(/me machu|me cortar|autoles|automutil/.test(s))
+flags.push("autolesão");
+
+if(/sozinh|ninguém|não tenho ninguém|ninguém se importa/.test(s))
+flags.push("isolamento");
+
+if(/preciso de ajuda|me ajuda|quero conversar|procurar ajuda|terapia|psicólog/.test(s))
+flags.push("busca de ajuda");
+
+if(/melhor|recuper|parei|consegui/.test(s))
+flags.push("recuperação");
+
+save({type:"texto",text,flags});
+
+document.getElementById("result").innerHTML=
+`<div class="card">
+<h2>Organizei seu registro</h2>
+<p class="muted">Isto não é diagnóstico. São apenas sinais linguísticos encontrados.</p>
+${flags.length?flags.map(x=>`<span class="tag">${x}</span>`).join(""):"<span class='tag'>registro emocional</span>"}
+<button class="secondary" onclick="show('history')">Ver histórico</button>
+</div>`;
+
+document.getElementById("text").value="";
+}
+
+function renderHistory(){
+const a=getData();
+
+document.getElementById("stats").innerHTML=
+`<p><b>${a.length}</b> registro(s) neste aparelho.</p>`;
+
+document.getElementById("entries").innerHTML=
+a.length?a.slice(0,30).map(x=>{
+const d=new Date(x.date).toLocaleString("pt-BR");
+return `<div class="entry">
+<b>${d}</b><br>
+${x.mood?["","😣","😕","😐","🙂","😊"][x.mood]+" ":""}
+${x.emotion||""}
+${x.text?`<p>${escapeHTML(x.text)}</p>`:""}
+${x.flags?x.flags.map(f=>`<span class="tag">${f}</span>`).join(""):""}
+</div>`;
+}).join(""):"<p class='muted'>Ainda não há registros.</p>";
+}
+
+function escapeHTML(s){
+return s.replace(/[&<>"']/g,m=>({
+"&":"&amp;","<":"&lt;",">":"&gt;",
+'"':"&quot;","'":"&#039;"
+}[m]));
+}
+
+function breath(){
+document.getElementById("nowContent").innerHTML=
+`<div class="card center">
+<h2>Respire no seu ritmo</h2>
+<div class="breath">respire</div>
+<p class="muted">Acompanhe o círculo por alguns ciclos.</p>
+<button class="secondary" onclick="show('home')">Voltar</button>
+</div>`;
+}
+
+function support(){
+document.getElementById("nowContent").innerHTML=
+`<div class="card">
+<h2>Encontrar apoio</h2>
+<p>Escolha alguém de confiança e envie uma mensagem simples:</p>
+<p><b>“Não estou muito bem. Você pode ficar comigo ou conversar comigo um pouco?”</b></p>
+</div>`;
+}
+
+function plan(){
+const old=localStorage.getItem("agora_plan")||"";
+document.getElementById("nowContent").innerHTML=
+`<div class="card">
+<h2>Meu plano pessoal</h2>
+<textarea id="plan">${old}</textarea>
+<button class="primary" onclick="savePlan()">Salvar meu plano</button>
+</div>`;
+}
+
+function savePlan(){
+localStorage.setItem("agora_plan",document.getElementById("plan").value);
+document.getElementById("nowContent").innerHTML=
+'<div class="safe">Plano salvo neste aparelho.</div>';
+}
+</script>
+
+</body>
+</html>
